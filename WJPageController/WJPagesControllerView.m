@@ -9,7 +9,7 @@
 #import "WJPagesControllerView.h"
 
 #define WJPagesTabBarHeight 36
-#define WJPagesTabBarFont 16
+#define WJPagesTabBarFont 18
 
 typedef NS_ENUM(NSInteger, WJScrollDirection) {
     WJScrollDirectionNone = 0,//点击item滑动
@@ -81,10 +81,10 @@ typedef NS_ENUM(NSInteger, WJScrollDirection) {
 //显示selectedIndex对应的controller
 - (void)showChildController {
     if (_tabBarView.selectedIndex >= _controllers.count) return;
-    _contentView.contentOffset = CGPointMake(_tabBarView.selectedIndex * self.frame.size.width, 0);
+    _contentView.contentOffset = CGPointMake(_tabBarView.selectedIndex * _contentView.frame.size.width, 0);
     UIViewController *controller = _controllers[_tabBarView.selectedIndex];
     if (!controller.parentViewController) {
-        controller.view.frame = CGRectMake(_tabBarView.selectedIndex * self.frame.size.width, 0, self.frame.size.width, CGRectGetHeight(self.frame) - WJPagesTabBarHeight);
+        controller.view.frame = CGRectMake(_tabBarView.selectedIndex * _contentView.frame.size.width, 0, _contentView.frame.size.width, CGRectGetHeight(_contentView.frame));
         [_contentView addSubview:controller.view];
         [_parentController addChildViewController:controller];
     }
@@ -94,7 +94,7 @@ typedef NS_ENUM(NSInteger, WJScrollDirection) {
 - (void)complete {
     assert(_parentController);
     _tabBarView.dataSource = _tabbarSource;
-    _contentView.contentSize = CGSizeMake(self.frame.size.width * _tabbarSource.count, CGRectGetHeight(self.frame) - WJPagesTabBarHeight);
+    _contentView.contentSize = CGSizeMake(_contentView.frame.size.width * _tabbarSource.count, CGRectGetHeight(_contentView.frame) - WJPagesTabBarHeight);
 }
 
 #pragma mark - UIScrollViewDelegate
@@ -115,6 +115,7 @@ typedef NS_ENUM(NSInteger, WJScrollDirection) {
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     if (_direction == WJScrollDirectionNone || scrollView.contentOffset.x < 0) return;
     NSInteger index = scrollView.contentOffset.x / scrollView.frame.size.width;
+    //currentIndex 不等于_tabBarView.selectedIndex的原因是 防止一次触摸左右滑动出现bug
     NSInteger currentIndex = _direction == WJScrollDirectionLeft ? index + 1 : index;//当前index
     NSInteger nextIndex = _direction == WJScrollDirectionLeft ? index : index + 1;//下一个index
     
@@ -127,11 +128,14 @@ typedef NS_ENUM(NSInteger, WJScrollDirection) {
     [_titleColor getRed:&nr green:&ng blue:&nb alpha:NULL];
     
     CGFloat progress = (scrollView.contentOffset.x - scrollView.frame.size.width * currentIndex) / scrollView.frame.size.width;
+
     CGFloat fabs_progress = fabs(progress);
+    
     //颜色跟随滑动距离改变
     item.titleLabel.textColor = [UIColor colorWithRed:sr + (nr - sr) * fabs_progress green:sg + (ng - sg) * fabs_progress blue:sb + (nb - sb) * fabs_progress alpha:1];
+
     nextItem.titleLabel.textColor = [UIColor colorWithRed:nr + (sr - nr) * fabs_progress green:ng + (sg - ng) * fabs_progress blue:nb + (sb - nb) * fabs_progress alpha:1];
-    
+
     //下划线跟随滑动距离改变
     CGRect frame = _tabBarView.indexView.frame;
     //x的偏移量
@@ -143,8 +147,13 @@ typedef NS_ENUM(NSInteger, WJScrollDirection) {
     _tabBarView.indexView.frame = frame;
 }
 
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
+    scrollView.scrollEnabled = NO;//防止暴力滑动
+}
+
 //滑动停止后 选定需要展示的controller
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    scrollView.scrollEnabled = YES;//防止暴力滑动
     NSInteger index = scrollView.contentOffset.x / scrollView.frame.size.width;
     if (index == _tabBarView.selectedIndex) return;
     [_tabBarView scrollToItemIndex:index];
