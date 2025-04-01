@@ -100,15 +100,12 @@ typedef NS_ENUM(NSInteger, WJScrollDirection) {
 #pragma mark - UIScrollViewDelegate
 //判断展示左边的视图还是右边的视图
 - (void)scrollViewPan:(UIPanGestureRecognizer *)pgr {
-    if (pgr.state == UIGestureRecognizerStateBegan) {
-        CGPoint velocity = [pgr velocityInView:pgr.view];
-        if (velocity.x > 0) {
-            _direction = WJScrollDirectionLeft;
-        } else if (velocity.x == 0) {
-            _direction = WJScrollDirectionNone;
-        } else {
-            _direction = WJScrollDirectionRight;
-        }
+    CGPoint velocity = [pgr velocityInView:pgr.view];
+    if (velocity.x == 0) return;
+    if (velocity.x > 0) {
+        _direction = WJSwitchPagesDirectionLeft;
+    } else {
+        _direction = WJSwitchPagesDirectionRight;
     }
 }
 
